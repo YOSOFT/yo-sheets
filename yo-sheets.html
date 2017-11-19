@@ -1,0 +1,36 @@
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="yo-sheets">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Hello [[prop1]]!</h2>
+  </template>
+
+  <script>
+    /**
+     * `yo-sheets`
+     * 
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class YoSheets extends Polymer.Element {
+      static get is() { return 'yo-sheets'; }
+      static get properties() {
+        return {
+          prop1: {
+            type: String,
+            value: 'yo-sheets'
+          }
+        };
+      }
+    }
+
+    window.customElements.define(YoSheets.is, YoSheets);
+  </script>
+</dom-module>
