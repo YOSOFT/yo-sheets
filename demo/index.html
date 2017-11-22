@@ -1,30 +1,63 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
-    <title>yo-sheets demo</title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <title>yo-sheets demo</title>
 
-    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
-    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
-    <link rel="import" href="../yo-sheets.html">
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
 
-    <custom-style>
-      <style is="custom-style" include="demo-pages-shared-styles">
-      </style>
-    </custom-style>
-  </head>
-  <body>
-    <div class="vertical-section-container centered">
-      <h3>Basic yo-sheets demo</h3>
-      <demo-snippet>
-        <template>
-          <yo-sheets></yo-sheets>
-        </template>
-      </demo-snippet>
-    </div>
-  </body>
+  <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+  <link rel="import" href="../../google-signin/google-signin.html">
+  <link rel="import" href="../../polymerfire/firebase-app.html">
+  <link rel="import" href="../../yo-login/yo-login.html">
+  <link rel="import" href="../yo-sheets.html">
+  <link rel="import" href="../yo-spreadsheets.html">
+
+  <custom-style>
+    <style is="custom-style" include="demo-pages-shared-styles">
+    </style>
+  </custom-style>
+</head>
+
+<body>
+  <div class="vertical-section-container centered">
+    <h3>Basic yo-sheets demo</h3>
+    <demo-snippet>
+      <template>
+        <!-- <google-signin client-id="655085981041-f6arfiu34lv2liv5p64ad5g8gmg1pi2p.apps.googleusercontent.com" scopes="https://www.googleapis.com/auth/spreadsheets">
+        </google-signin> -->
+        
+        <firebase-app name="yologin" api-key="AIzaSyA6azh_5mugltQvAZiKwjnpGDFmkqzeSWY" auth-domain="dashbig-6edfb.firebaseapp.com"
+          database-url="https://dashbig-6edfb.firebaseio.com" storage-bucket="dashbig-6edfb.appspot.com" messaging-sender-id="655085981041">
+        </firebase-app>
+
+        <yo-login google  app-name="yologin" debug no-sign-up></yo-login>
+
+        <yo-spreadsheets api-key="AIzaSyA6azh_5mugltQvAZiKwjnpGDFmkqzeSWY" client-id="655085981041-f6arfiu34lv2liv5p64ad5g8gmg1pi2p.apps.googleusercontent.com"
+          title="apispreadsheet" spreadsheet-id="1_VxMVvQM0wznhMZMRKrjSSy7XgqP5FMtGz4GwY0rOCA">
+        </yo-spreadsheets>
+        <!-- <yo-sheets api-key="AIzaSyA6azh_5mugltQvAZiKwjnpGDFmkqzeSWY"         
+          client-id="655085981041-f6arfiu34lv2liv5p64ad5g8gmg1pi2p.apps.googleusercontent.com"
+          key="1_VxMVvQM0wznhMZMRKrjSSy7XgqP5FMtGz4GwY0rOCA">
+        </yo-sheets> -->
+      </template>
+      <script>
+        var spreadsheets = document.querySelector("yo-spreadsheets");
+        //  spreadsheets.create();
+        spreadsheets.addEventListener("yo-sheet-create-spreadsheet", (e) => {
+          e.stopPropagation();
+          console.log("desde spreadsheets", e);
+        });
+        window.addEventListener("yo-sheet-get-spreadsheet", (e) => {
+          console.log("desde window", e);
+        });
+      </script>
+    </demo-snippet>
+  </div>
+</body>
+
 </html>

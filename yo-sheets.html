@@ -1,4 +1,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../google-signin/google-signin-aware.html">
+
 
 <dom-module id="yo-sheets">
   <template>
@@ -7,7 +10,14 @@
         display: block;
       }
     </style>
-    <h2>Hello [[prop1]]!</h2>
+    <google-signin-aware client-id="{{clientId}}" scopes="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"
+      on-google-signin-aware-success="_onSignInSuccess" on-google-signin-aware-signed-out="_onSignInFail">
+    </google-signin-aware>
+
+    <iron-ajax id="publicajax" params='{"alt": "json"}' handle-as="json" on-response="_onCellRows"></iron-ajax>
+    <iron-ajax id="sheetajax" handle-as="json" on-response="_onCellRows"></iron-ajax>
+    <iron-ajax id="worksheetajax" params='{"alt": "json"}' handle-as="json" on-response="_onWorksheet"></iron-ajax>
+    <iron-ajax id="cellrowsajax" params='{"alt": "json"}' handle-as="json" on-response="_onCellRows"></iron-ajax>
   </template>
 
   <script>
@@ -23,11 +33,65 @@
       static get is() { return 'yo-sheets'; }
       static get properties() {
         return {
-          prop1: {
+          clientId: {
             type: String,
-            value: 'yo-sheets'
-          }
+            value: '',
+            observer: '_configUpdate'
+          },
+          apiKey: {
+            type: String
+          },
+          key: {
+            type: String,
+            value: '',
+            observer: '_keyChanged'
+          },
+  
         };
+      }
+
+      _keyChanged(){
+        var url =  "https://sheets.googleapis.com/v4/spreadsheets/" + this.key 
+        
+        this.$.sheetajax.params.key = this.apiKey;
+        this.$.sheetajax.url = url;
+        this.$.sheetajax.generateRequest();
+
+        //Obtenerdatos
+        // var url =  "https://sheets.googleapis.com/v4/spreadsheets/" + this.key + "/values/Sheet1"
+        
+        // this.$.sheetajax.params.key = this.apiKey;
+        // this.$.sheetajax.url = url;
+        // this.$.sheetajax.generateRequest();
+      }
+      _onSignInSuccess(e, detail) {
+        var oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+        var headers = {
+          'Authorization': 'Bearer ' + oauthToken.access_token
+        };
+        this.$.listsheetsajax.headers = headers;
+        this.$.worksheetajax.headers = headers;
+        this.$.cellrowsajax.headers = headers;
+
+      }
+
+      _onSignInFail(e, detail) {
+        // TODO(ericbidelman): handle this in some way.
+        console.log("_onSignInFail", e.type);
+      }
+      _onCellRows(e) {
+        console.log("_onCellRows", e.target.lastResponse);
+      }
+      _onSpreadsheetList(e, detail) {
+        e.stopPropagation();
+        console.log("_onSpreadsheetList", e.target.lastResponse);
+      }
+      _onWorksheet() {
+        console.log("_onWorksheet");
+      }
+      _configUpdate(key, published, tabId, clientId) {
+        // this._tabIdChanged();
+        console.log("_configUpdate");
       }
     }
 

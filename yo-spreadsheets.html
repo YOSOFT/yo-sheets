@@ -1,0 +1,236 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../google-signin/google-signin-aware.html">
+
+<dom-module id="yo-spreadsheets">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <google-signin-aware client-id="{{clientId}}" scopes="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"
+      on-google-signin-aware-success="_onSignInSuccess" on-google-signin-aware-signed-out="_onSignInFail">
+    </google-signin-aware>
+
+    <iron-ajax id="listSpreadsheetsAjax" handle-as="json" on-response="_onListSpreadsheets" content-type="application/json"></iron-ajax>
+    <iron-ajax id="spreadsheetsAjax" method="POST" handle-as="json" on-response="_onCreate" content-type="application/json">
+      <iron-ajax id="spreadsheetAjax" handle-as="json" on-response="_onGet" content-type="application/json"></iron-ajax>
+    </iron-ajax>
+    <iron-ajax id="batchUpdateAjax" method="POST" handle-as="json" on-response="_onBatchUpdate" content-type="application/json"></iron-ajax>
+
+  </template>
+
+  <script>
+    /**
+     * `yo-sheets`
+     *
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class YoSpreadsheets extends Polymer.Element {
+      static get is() { return 'yo-spreadsheets'; }
+      static get properties() {
+        return {
+          clientId: {
+            type: String,
+            value: '',
+            observer: '_configUpdate'
+          },
+          apiKey: {
+            type: String
+          },
+          key: {
+            type: String,
+            value: ''
+          },
+          // The title of the spreadsheet.
+          title: {
+            type: String
+          },
+          // The time zone of the spreadsheet, in CLDR format such as `America/New_York`. If the time zone isn't recognized, this may be a custom time zone such as `GMT-07:00`.
+          timeZone: {
+            type: String
+          },
+          // The locale of the spreadsheet in one of the following formats: * an ISO 639-1 language code such as `en` * an ISO 639-2 language code such as `fil`, if no 639-1 code exists * a combination of the ISO language code and country code, such as `en_US` Note: when updating this field, not all locales/languages are supported.
+          locale: {
+            type: String
+          },
+          // Properties of a spreadsheet.
+          SpreadsheetProperties: {
+            type: Object
+          },
+          spreadsheetId: {
+            type: String,
+            value: '',
+            observer: '_spreadsheetIdChanged'
+          },
+          //Resource that represents a spreadsheet.
+          spreadsheet: {
+            type: Object,
+            value: function () { return {}; },
+            notify: true
+          },
+          //list from spreadsheets
+          spreadsheets: {
+            type: Array,
+            readOnly: true,
+            notify: true,
+            value: function () { return []; }
+          },
+          batchUpdate: {
+            type: Object,
+            value: function () { return {}; },
+            observer: '_BatchUpdate'
+          },
+          batchUpdateSpreadsheetResponse: {
+            type: Object,
+            value: function () { return {}; },
+            notify: true
+          }
+        };
+      }
+
+      /*  Returns the spreadsheet at the given ID. The caller must specify 
+       the spreadsheet ID. By default, data within grids will not be returned. 
+       You can include grid data one of two ways: * Specify a field mask listing your desired fields 
+       using the `fields` URL parameter in HTTP * Set the includeGridData URL parameter to true. 
+       If a field mask is set, the `includeGridData` parameter is ignored For large spreadsheets, 
+       it is recommended to retrieve only the specific fields of the spreadsheet that you want. 
+       To retrieve only subsets of the spreadsheet, use the ranges URL parameter. 
+       Multiple ranges can be specified. Limiting the range will return only the portions of 
+       the spreadsheet that intersect the requested ranges. Ranges are specified using A1 notation */
+      get() {
+
+      }
+      _spreadsheetIdChanged() {
+        var url = "https://sheets.googleapis.com/v4/spreadsheets/" + this.spreadsheetId;
+        this.$.spreadsheetAjax.params.key = this.apiKey;
+        this.$.spreadsheetAjax.url = url;
+        this.$.spreadsheetAjax.generateRequest();
+      }
+      _onGet(e) {
+        e.stopPropagation();
+        this.spreadsheet = e.target.lastResponse;
+        this.dispatchEvent(new CustomEvent('yo-sheet-get-spreadsheet', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            spreadsheet: this.spreadsheet
+          }
+        }));
+      }
+      /* Applies one or more updates to the spreadsheet. Each request is validated before being applied. 
+        If any request is not valid then the entire request will fail and nothing will be applied. 
+        Some requests have replies to give you some information about how they are applied. 
+        The replies will mirror the requests. For example, if you applied 4 updates and the 3rd one had a reply, 
+        then the response will have 2 empty replies, the actual reply, and another empty reply, in that order. 
+        Due to the collaborative nature of spreadsheets, it is not guaranteed that the spreadsheet 
+        will reflect exactly your changes after this completes, however it is guaranteed that the updates 
+        in the request will be applied together atomically. Your changes may be altered with respect 
+        to collaborator changes. If there are no collaborators, the spreadsheet should reflect your changes. 
+        */
+      _BatchUpdate(newValue, oldValue) {
+        //TODO: Validar schema de Objeto
+        // var obj = {
+        //   "requests": [{
+        //     "addSheet": {
+        //       "properties": {
+        //         "title": "Expenses",
+        //         "sheetType": "GRID",
+        //         "gridProperties": {
+        //           "rowCount": 50,
+        //           "columnCount": 10
+        //         }
+        //       }
+        //     }
+        //   }],
+        // }
+        if(Object.keys(newValue).length === 0 && newValue.constructor === Object){
+          return;
+        }
+        this.$.batchUpdateAjax.body = newValue;
+
+        var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + this.spreadsheetId + ':batchUpdate';
+        this.$.batchUpdateAjax.params.key = this.apiKey;
+        this.$.batchUpdateAjax.url = url;
+        this.$.batchUpdateAjax.generateRequest();
+      }
+      _onBatchUpdate(e) {
+        console.log("_onBatchUpdate", e);
+      }
+      //Create a Spreedsheet
+      create() {
+        if (!this.title) {
+          return;
+        }
+        var obj = {};
+        obj.properties = {};
+        obj.properties.title = this.title;
+        if (this.timeZone) obj.properties.timeZone = this.timeZone;
+        if (this.locale) obj.properties.locale = this.locale;
+        this.$.spreadsheetsAjax.body = obj;
+
+        var url = 'https://sheets.googleapis.com/v4/spreadsheets';
+        this.$.spreadsheetsAjax.url = url;
+        this.$.spreadsheetsAjax.params.key = this.apiKey;
+
+        this.$.spreadsheetsAjax.generateRequest();
+      }
+      // returning the newly created spreadsheet
+      _onCreate(e) {
+        e.stopPropagation();
+        this.spreadsheet = e.target.lastResponse;
+        this.dispatchEvent(new CustomEvent('yo-sheet-create-spreadsheet', {
+          detail: { spreadsheet: this.spreadsheet },
+          bubbles: true,
+          composed: true
+        }));
+      }
+      //list from Spreedsheets
+      listSpreadsheets() {
+        this.$.listSpreadsheetsAjax.params.key = this.apiKey;
+        var url = 'https://www.googleapis.com/drive/v3/files';
+        this.$.listSpreadsheetsAjax.url = url;
+        this.$.listSpreadsheetsAjax.params.q = "mimeType='application/vnd.google-apps.spreadsheet'";
+        this.$.listSpreadsheetsAjax.generateRequest();
+      }
+      _onListSpreadsheets(e, detail) {
+        e.stopPropagation();
+        this._setSpreadsheets(e.target.lastResponse.files);
+        //TODO: Implementar paginacion
+        if (e.target.lastResponse.incompleteSearch) alert("Disculpa las molestias en este momento solo podemos recuperar los primeros 100 archivos");
+        this.dispatchEvent(new CustomEvent("yo-sheet-list-spreadsheets",
+          {
+            bubbles: true,
+            composed: true,
+            detail: { spreadsheets: this.spreadsheets }
+          }));
+      }
+      _onSignInSuccess(e, detail) {
+        var oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+        var headers = {
+          'Authorization': 'Bearer ' + oauthToken.access_token
+        };
+        //TODO: Verificar si solo se necesita para el metodo POST
+        this.$.listSpreadsheetsAjax.headers = headers;
+        this.$.spreadsheetsAjax.headers = headers;
+        this.$.spreadsheetAjax.headers = headers;
+        this.$.batchUpdateAjax.headers = headers;
+      }
+      _onSignInFail(e, detail) {
+        // TODO(ericbidelman): handle this in some way.
+        console.log("_onSignInFail", e.type);
+      }
+      _configUpdate(key, published, tabId, clientId) {
+        // this._tabIdChanged();
+        console.log("_configUpdate");
+      }
+
+    }
+
+    window.customElements.define(YoSpreadsheets.is, YoSpreadsheets);
+  </script>
+</dom-module>
